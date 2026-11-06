@@ -1,0 +1,44 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: vectorizador-backend
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    environment:
+      - TEMP_DIR=/tmp/vectorizador
+      - DEBUG=false
+    volumes:
+      - tmp_data:/tmp/vectorizador
+    ports:
+      - "8000:8000"
+    networks:
+      - app-net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/vectorize/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: vectorizador-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    networks:
+      - app-net
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  tmp_data:
+
+networks:
+  app-net:
+    driver: bridge
