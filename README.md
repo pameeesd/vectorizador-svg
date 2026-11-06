@@ -232,6 +232,11 @@ pytest tests/ -v --cov=app
 * **Causa Raíz:** La firma del binding de Python de `vtracer` (>=0.6.0) no utiliza `input_path` ni `output_path`, sino `image_path` y `out_path`, y requiere especificar el modo de simplificación (`mode`).
 * **Solución Aplicada:** En `backend/app/services/vectorizer.py`, se renombraron los argumentos a `image_path=input_path`, `out_path=output_path` y se añadió `mode="spline"`.
 
+### [Vectorizer Service - Fondo blanco forzado al vectorizar imágenes con transparencia]
+* **Problema:** Imágenes PNG con fondos transparentes generaban vectores SVG con un recuadro o fondo blanco sólido opaco, perdiendo la transparencia original y produciendo artefactos y halos de color en los contornos.
+* **Causa Raíz:** En `backend/app/services/vectorizer.py`, la rutina inicial ejecutaba un alpha compositing forzado contra un fondo blanco (`white = np.ones_like(rgb) * 255`) sobre cualquier imagen con 4 canales. Adicionalmente, el motor `vtracer` genera por defecto un `<rect>` de fondo cubriendo el 100% del lienzo.
+* **Solución Aplicada:** Se sustituyó la composición fija por detección dinámica de alfa (`has_transparency = np.any(alpha < 250)`), neutralizando píxeles transparentes (`clean_alpha == 0, :3 = 0`) para erradicar halos, preservando los 4 canales BGRA y aplicando `_clean_svg_background()` para remover mediante regex el `<rect>` de fondo blanco residual en el SVG final.
+
 ### [Nginx Ingress - Error 404/Fallback en llamadas a endpoints /api/]
 * **Problema:** Peticiones HTTP desde el navegador o frontend hacia `/api/v1/...` recibían respuestas HTML (`index.html`) con código 200/404 en lugar de comunicarse con la API de FastAPI.
 * **Causa Raíz:** El archivo `frontend/nginx.conf` carecía de un bloque `location /api/`, provocando que el enrutamiento cayera en la regla general SPA `try_files $uri $uri/ /index.html`.
