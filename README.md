@@ -242,6 +242,11 @@ pytest tests/ -v --cov=app
 * **Causa Raíz:** `frontend/tsconfig.json` no incluía la referencia a las definiciones de tipos del cliente de Vite en su matriz de compilación.
 * **Solución Aplicada:** Se agregó `"types": ["vite/client"]` dentro del bloque `compilerOptions` en `frontend/tsconfig.json`.
 
+### [CI/CD Pipeline - Triggers inactivos en master, permisos SARIF y dependencias GLib]
+* **Problema:** El pipeline de GitHub Actions no se ejecutaba tras hacer push a la rama principal (`master`), y presentaba riesgo de fallo en la subida de reportes SARIF a CodeQL y la instalación de dependencias del sistema en runners modernos de Ubuntu.
+* **Causa Raíz:** En `.github/workflows/ci.yml`, los filtros de ramas solo contemplaban `main`, el workflow carecía del permiso `security-events: write` para el action `upload-sarif`, y la instalación de GLib para OpenCV headless no contemplaba la transición de paquetes a `libglib2.0-0t64`.
+* **Solución Aplicada:** Se agregó `master` a los triggers de `push` y `pull_request`, se habilitó `security-events: write` a nivel de workflow, se ajustó la condición de ejecución de `docker-scan` y se implementó la instalación con fallback `libglib2.0-0t64 || libglib2.0-0`.
+
 ---
 
 ## 📄 Licencia
