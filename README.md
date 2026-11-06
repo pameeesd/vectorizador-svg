@@ -247,6 +247,11 @@ pytest tests/ -v --cov=app
 * **Causa Raíz:** En `.github/workflows/ci.yml`, los filtros de ramas solo contemplaban `main`, el workflow carecía del permiso `security-events: write` para el action `upload-sarif`, y la instalación de GLib para OpenCV headless no contemplaba la transición de paquetes a `libglib2.0-0t64`.
 * **Solución Aplicada:** Se agregó `master` a los triggers de `push` y `pull_request`, se habilitó `security-events: write` a nivel de workflow, se ajustó la condición de ejecución de `docker-scan` y se implementó la instalación con fallback `libglib2.0-0t64 || libglib2.0-0`.
 
+### [CI/CD Pipeline - Dependencias dev de backend y ausencia de lockfile en frontend]
+* **Problema:** Fallo en los jobs `Backend · Lint & Test` (error `ruff: command not found`) y `Frontend · Lint & Build` (`npm error The npm ci command can only install with an existing package-lock.json`) en GitHub Actions.
+* **Causa Raíz:** `backend/requirements-dev.txt` no incluía las herramientas de análisis estático (`ruff`, `mypy`, `pytest-cov`), y el runner de frontend invocaba `npm ci` sin existir un `package-lock.json` en el repositorio.
+* **Solución Aplicada:** Se añadieron `ruff>=0.4.0`, `mypy>=1.10.0` y `pytest-cov>=5.0.0` en `backend/requirements-dev.txt`, y se modificó `npm ci` por `npm install` en `.github/workflows/ci.yml` y `.github/workflows/security-audit.yml`.
+
 ---
 
 ## 📄 Licencia
