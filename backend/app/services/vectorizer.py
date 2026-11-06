@@ -140,10 +140,11 @@ def vectorize(raw_bytes: bytes, params: VectorizationParams) -> str:
 
         try:
             vtracer.convert_image_to_svg_py(
-                input_path=input_path,
-                output_path=output_path,
+                image_path=input_path,
+                out_path=output_path,
                 colormode=params.color_mode,
                 hierarchical=params.hierarchical,
+                mode="spline",
                 filter_speckle=params.filter_speckle,
                 color_precision=params.color_precision,
                 layer_difference=params.layer_difference,

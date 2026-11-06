@@ -1,0 +1,124 @@
+<mxfile host="app.diagrams.net" modified="2026-11-06T18:03:00.000Z" agent="Antigravity DevOps" version="21.0.0" type="device">
+  <diagram id="vectorizador-arch" name="Arquitectura Técnica">
+    <mxGraphModel dx="1422" dy="850" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1350" pageHeight="750" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- Cliente -->
+        <mxCell id="client_box" value="&lt;b&gt;🌐 Navegador / Usuario Web&lt;/b&gt;&lt;br&gt;Interfaz Web Vectorizador SVG" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;arcSize=10;fontFamily=Helvetica;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="270" width="180" height="90" as="geometry" />
+        </mxCell>
+
+        <!-- Docker Engine Host Box -->
+        <mxCell id="docker_host" value="&lt;b&gt;🐳 Docker Engine (Host / VM)&lt;/b&gt;" style="swimlane;whiteSpace=wrap;html=1;fillColor=#f5f5f5;fontColor=#333333;strokeColor=#666666;startSize=30;rounded=1;arcSize=4;fontFamily=Helvetica;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="270" y="50" width="670" height="640" as="geometry" />
+        </mxCell>
+
+        <!-- Red Bridge -->
+        <mxCell id="bridge_net" value="&lt;b&gt;Red Bridge Interna: app-net&lt;/b&gt;" style="swimlane;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#4d90fe;strokeWidth=2;dashed=1;dashPattern=5 5;startSize=25;fontFamily=Helvetica;fontSize=12;" vertex="1" parent="docker_host">
+          <mxGeometry x="20" y="45" width="630" height="575" as="geometry" />
+        </mxCell>
+
+        <!-- Frontend Container -->
+        <mxCell id="frontend_container" value="&lt;b&gt;Contenedor: vectorizador-frontend&lt;/b&gt;&lt;br&gt;&lt;i&gt;Puerto 80:80&lt;/i&gt;" style="swimlane;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;startSize=35;rounded=1;arcSize=6;fontFamily=Helvetica;fontSize=12;" vertex="1" parent="bridge_net">
+          <mxGeometry x="20" y="45" width="260" height="310" as="geometry" />
+        </mxCell>
+
+        <mxCell id="nginx_node" value="&lt;b&gt;Nginx 1.25 Alpine&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;• Reverse Proxy (/api/ &amp;rarr; backend:8000)&lt;br&gt;• Servidor Web Estático (SPA)&lt;br&gt;• Compresión Gzip&lt;br&gt;• Security Headers (CSP, X-Frame)&lt;br&gt;• Healthcheck: /health" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;align=left;spacingLeft=8;fontFamily=Helvetica;fontSize=11;" vertex="1" parent="frontend_container">
+          <mxGeometry x="15" y="45" width="230" height="135" as="geometry" />
+        </mxCell>
+
+        <mxCell id="spa_node" value="&lt;b&gt;React 18 + Vite (SPA Estática)&lt;/b&gt;&lt;br&gt;TypeScript + Lucide Icons&lt;br&gt;Dropzone, Parámetros, Preview SVG" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontFamily=Helvetica;fontSize=11;" vertex="1" parent="frontend_container">
+          <mxGeometry x="15" y="200" width="230" height="85" as="geometry" />
+        </mxCell>
+
+        <!-- Backend Container -->
+        <mxCell id="backend_container" value="&lt;b&gt;Contenedor: vectorizador-backend&lt;/b&gt;&lt;br&gt;&lt;i&gt;Puerto interno 8000 (appuser non-root)&lt;/i&gt;" style="swimlane;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;startSize=35;rounded=1;arcSize=6;fontFamily=Helvetica;fontSize=12;" vertex="1" parent="bridge_net">
+          <mxGeometry x="340" y="45" width="270" height="375" as="geometry" />
+        </mxCell>
+
+        <mxCell id="fastapi_node" value="&lt;b&gt;FastAPI + Uvicorn Standard&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;• Python 3.12-slim&lt;br&gt;• 2 Workers concurrentes&lt;br&gt;• Magic bytes validation&lt;br&gt;• Healthcheck: /api/v1/.../health" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;align=left;spacingLeft=8;fontFamily=Helvetica;fontSize=11;" vertex="1" parent="backend_container">
+          <mxGeometry x="15" y="45" width="240" height="105" as="geometry" />
+        </mxCell>
+
+        <mxCell id="slowapi_node" value="&lt;b&gt;SlowAPI Rate Limiter&lt;/b&gt;&lt;br&gt;20 requests / minuto por IP" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontFamily=Helvetica;fontSize=11;" vertex="1" parent="backend_container">
+          <mxGeometry x="15" y="165" width="240" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="engine_node" value="&lt;b&gt;Motor de Vectorización&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;• vtracer (Rust core)&lt;br&gt;• OpenCV Headless (libglib2.0-0t64)&lt;br&gt;• NumPy &amp;amp; Python-multipart" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;align=left;spacingLeft=8;fontFamily=Helvetica;fontSize=11;" vertex="1" parent="backend_container">
+          <mxGeometry x="15" y="230" width="240" height="120" as="geometry" />
+        </mxCell>
+
+        <!-- Volumen Docker -->
+        <mxCell id="volume_node" value="&lt;b&gt;Volumen Docker:&lt;br&gt;tmp_data&lt;/b&gt;&lt;br&gt;&lt;i&gt;Montado en /tmp/vectorizador&lt;/i&gt;&lt;br&gt;(Eliminación tras petición)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#ffe6cc;strokeColor=#d79b00;fontFamily=Helvetica;fontSize=11;" vertex="1" parent="bridge_net">
+          <mxGeometry x="385" y="460" width="180" height="95" as="geometry" />
+        </mxCell>
+
+        <!-- GitHub Actions / CI/CD -->
+        <mxCell id="cicd_box" value="&lt;b&gt;⚙️ CI/CD &amp;amp; DevSecOps (GitHub Actions)&lt;/b&gt;" style="swimlane;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;startSize=30;rounded=1;arcSize=4;fontFamily=Helvetica;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="980" y="50" width="310" height="640" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ci_backend" value="&lt;b&gt;Workflow: Backend CI&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;• Ruff Linter&lt;br&gt;• Mypy Type Checker&lt;br&gt;• Pytest + Coverage XML&lt;br&gt;• Codecov Upload" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;align=left;spacingLeft=8;fontFamily=Helvetica;fontSize=11;" vertex="1" parent="cicd_box">
+          <mxGeometry x="20" y="55" width="270" height="110" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ci_frontend" value="&lt;b&gt;Workflow: Frontend CI&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;• ESLint&lt;br&gt;• TypeScript (&lt;code&gt;tsc --noEmit&lt;/code&gt;)&lt;br&gt;• Vite Production Build" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;align=left;spacingLeft=8;fontFamily=Helvetica;fontSize=11;" vertex="1" parent="cicd_box">
+          <mxGeometry x="20" y="190" width="270" height="95" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ci_sec" value="&lt;b&gt;Workflow: Security Scan&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;• Trivy Container Scan (HIGH/CRIT)&lt;br&gt;• Exportación SARIF a GitHub CodeQL&lt;br&gt;• Cron semanal: pip-audit &amp;amp; npm audit" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;align=left;spacingLeft=8;fontFamily=Helvetica;fontSize=11;" vertex="1" parent="cicd_box">
+          <mxGeometry x="20" y="310" width="270" height="115" as="geometry" />
+        </mxCell>
+
+        <!-- Edges / Connections -->
+        <!-- User to Nginx -->
+        <mxCell id="edge_user_nginx" value="HTTP Request&lt;br&gt;:80" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#0066CC;fontFamily=Helvetica;fontSize=11;" edge="1" parent="1" source="client_box" target="nginx_node">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="240" y="315" />
+              <mxPoint x="240" y="208" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Nginx to SPA -->
+        <mxCell id="edge_nginx_spa" value="Sirve estáticos" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;strokeColor=#9673a6;fontFamily=Helvetica;fontSize=11;" edge="1" parent="bridge_net" source="nginx_node" target="spa_node">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Nginx to FastAPI -->
+        <mxCell id="edge_nginx_backend" value="proxy_pass /api/ &amp;rarr; :8000" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#2B78E4;fontFamily=Helvetica;fontSize=11;" edge="1" parent="bridge_net" source="nginx_node" target="fastapi_node">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- FastAPI to Limiter -->
+        <mxCell id="edge_fastapi_limiter" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#82b366;" edge="1" parent="bridge_net" source="fastapi_node" target="slowapi_node">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Limiter to Engine -->
+        <mxCell id="edge_limiter_engine" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#82b366;" edge="1" parent="bridge_net" source="slowapi_node" target="engine_node">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Engine to Volume -->
+        <mxCell id="edge_engine_volume" value="I/O temporal (/tmp)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;dashed=1;strokeColor=#d79b00;fontFamily=Helvetica;fontSize=11;" edge="1" parent="bridge_net" source="engine_node" target="volume_node">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- CI/CD connection to Docker -->
+        <mxCell id="edge_cicd_docker" value="Build &amp;amp; Scan Images" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;strokeWidth=2;strokeColor=#b85450;fontFamily=Helvetica;fontSize=11;" edge="1" parent="1" source="ci_sec" target="docker_host">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="960" y="418" />
+              <mxPoint x="960" y="370" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

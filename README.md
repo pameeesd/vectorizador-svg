@@ -22,6 +22,16 @@
 
 ---
 
+## 🛠️ Tecnologías y Herramientas
+
+* **Frontend:** React 18, TypeScript, Vite 5, Lucide React, Nginx 1.25 Alpine.
+* **Backend:** Python 3.12, FastAPI, Uvicorn, OpenCV (Headless), vtracer, NumPy, SlowAPI.
+* **Contenerización & Red:** Docker, Docker Compose, Multi-stage builds, Bridge Network (`app-net`), Docker Named Volume (`tmp_data`).
+* **Seguridad & Calidad:** Principio de menor privilegio (`non-root user`), Magic Bytes validation, Content Security Policy (CSP), Trivy Vulnerability Scanner, `pip-audit`, `npm audit`.
+* **Testing & CI/CD:** GitHub Actions, Pytest, Codecov, Ruff, Mypy, ESLint.
+
+---
+
 ## 🚀 Inicio rápido
 
 ### Con Docker (recomendado)
@@ -63,9 +73,79 @@ npm run dev
 
 Abre **http://localhost:5173**
 
+### Operaciones, Empaquetado y Verificación
+
+```bash
+# Construcción y levantamiento en segundo plano
+docker compose up -d --build
+
+# Verificación de salud y estado de contenedores
+docker compose ps
+curl -f http://localhost/health
+curl -f http://localhost:8000/api/v1/vectorize/health
+
+# Construcción manual e inspección de imágenes
+docker build -t vectorizador-backend:local ./backend
+docker build -t vectorizador-frontend:local ./frontend
+
+# Escaneo local de vulnerabilidades en contenedor (Trivy)
+docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:latest image vectorizador-backend:local
+```
+
 ---
 
 ## 🏗️ Arquitectura
+
+### Diagrama de Flujo e Infraestructura
+
+> 📐 Diagrama editable disponible en [`architecture.drawio`](architecture.drawio) (compatible con Diagrams.net / Draw.io).
+
+```mermaid
+flowchart TD
+    subgraph ClientLayer["🌐 Cliente"]
+        User["Usuario / Navegador Web"]
+    end
+
+    subgraph DockerHost["🐳 Docker Engine (Host / VM)"]
+        subgraph Net["Red Bridge: app-net"]
+            
+            subgraph FrontendContainer["Contenedor: vectorizador-frontend"]
+                Nginx["Nginx 1.25 Alpine\n(:80)\n- Reverse Proxy\n- Static SPA Host\n- CSP & Security Headers"]
+                SPA["React 18 + Vite\n(Archivos estáticos)"]
+                Nginx -->|Sirve estáticos| SPA
+            end
+
+            subgraph BackendContainer["Contenedor: vectorizador-backend"]
+                Uvicorn["Uvicorn (2 workers)\nFastAPI (:8000)\n(User: appuser)"]
+                Limiter["SlowAPI\nRate Limiter (20 req/m)"]
+                Engine["Motor de Vectorización\n- OpenCV Headless\n- vtracer (Rust)"]
+                
+                Uvicorn --> Limiter
+                Limiter --> Engine
+            end
+            
+            Volume[("Volumen Docker:\ntmp_data\n(/tmp/vectorizador)")]
+            Engine <-->|I/O Archivos Temporales| Volume
+            
+            Nginx -->|Proxy Pass: /api/ -> :8000| Uvicorn
+        end
+    end
+
+    subgraph CICD["⚙️ CI/CD & DevSecOps (GitHub Actions)"]
+        GHA["GitHub Actions Runner"]
+        Linter["Ruff / Mypy / ESLint"]
+        Tests["Pytest + Coverage"]
+        Scanner["Trivy Container Scan + pip/npm audit"]
+        
+        GHA --> Linter
+        GHA --> Tests
+        GHA --> Scanner
+    end
+
+    User -->|HTTP :80| Nginx
+```
+
+### Estructura de Archivos
 
 ```
 vectorizador-svg/
@@ -137,6 +217,30 @@ pytest tests/ -v --cov=app
 2. Crea una rama: `git checkout -b feature/mi-mejora`
 3. Haz tus cambios y tests
 4. Abre un Pull Request
+
+---
+
+## 🛠️ Bitácora de Errores y Soluciones
+
+### [Docker Backend - Incompatibilidad de paquetes GLib en Debian/Python 3.12]
+* **Problema:** Fallo durante la construcción de la imagen de Docker (`docker build ./backend`) al ejecutar `apt-get install -y libglib2.0-0 libgl1-mesa-glx`, arrojando error de paquete no encontrado o sin candidato de instalación.
+* **Causa Raíz:** En las versiones recientes de la imagen base `python:3.12-slim` (Debian Trixie), se aplicó la transición de arquitectura a `time_t` de 64-bit, renombrando `libglib2.0-0` a `libglib2.0-0t64`. Además, `libgl1-mesa-glx` está descontinuada e innecesaria dado que se utiliza `opencv-python-headless`.
+* **Solución Aplicada:** Se actualizó `backend/Dockerfile` reemplazando los paquetes del sistema por `libglib2.0-0t64` y removiendo `libgl1-mesa-glx`.
+
+### [Vectorizer Service - Invocación errónea de parámetros en API de vtracer]
+* **Problema:** Error `TypeError: convert_image_to_svg_py() got an unexpected keyword argument` en tiempo de ejecución al procesar la vectorización de imágenes.
+* **Causa Raíz:** La firma del binding de Python de `vtracer` (>=0.6.0) no utiliza `input_path` ni `output_path`, sino `image_path` y `out_path`, y requiere especificar el modo de simplificación (`mode`).
+* **Solución Aplicada:** En `backend/app/services/vectorizer.py`, se renombraron los argumentos a `image_path=input_path`, `out_path=output_path` y se añadió `mode="spline"`.
+
+### [Nginx Ingress - Error 404/Fallback en llamadas a endpoints /api/]
+* **Problema:** Peticiones HTTP desde el navegador o frontend hacia `/api/v1/...` recibían respuestas HTML (`index.html`) con código 200/404 en lugar de comunicarse con la API de FastAPI.
+* **Causa Raíz:** El archivo `frontend/nginx.conf` carecía de un bloque `location /api/`, provocando que el enrutamiento cayera en la regla general SPA `try_files $uri $uri/ /index.html`.
+* **Solución Aplicada:** Se añadió el bloque `location /api/` con `proxy_pass http://backend:8000;`, cabeceras de proxy (`Host`, `X-Real-IP`, `X-Forwarded-For`) y `client_max_body_size 10M;` en `frontend/nginx.conf`.
+
+### [Frontend TypeScript - Tipado no reconocido para entorno Vite]
+* **Problema:** Fallo en la verificación estática de tipos (`npx tsc --noEmit`) en frontend por falta de definiciones globales para `import.meta.env` y utilidades de Vite.
+* **Causa Raíz:** `frontend/tsconfig.json` no incluía la referencia a las definiciones de tipos del cliente de Vite en su matriz de compilación.
+* **Solución Aplicada:** Se agregó `"types": ["vite/client"]` dentro del bloque `compilerOptions` en `frontend/tsconfig.json`.
 
 ---
 
